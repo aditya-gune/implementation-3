@@ -1,6 +1,6 @@
 % Initializations
-train_examples = load('C:\Users\Laurel\Matlab\CS534\src\cs534_git\Implementation3\iris_train-1.csv');
-test_examples = load('C:\Users\Laurel\Matlab\CS534\src\cs534_git\Implementation3\iris_test-1.csv');
+train_examples = load('D:\Aditya\Desktop\School\OSU\MS\Term 1\CS534 - Machine Learning\Implementation 3\iris_train-1.csv');
+test_examples = load('D:\Aditya\Desktop\School\OSU\MS\Term 1\CS534 - Machine Learning\Implementation 3\iris_train-1.csv');
 
 
 num_examples = size(train_examples,1);
@@ -26,10 +26,15 @@ function [weights, costHistory] = informationGain(examples, features, threshold)
     maxGainFeature = 0;
     maxDelta = 0;
     
+    
+    
     classifiers = unique(examples(:, classification_index));
     num_classifiers = length(classifiers);
     count_array = zeros(3,num_classifiers);
     count_array(1, :) = classifiers';
+    occurenceMatrix = zeros(2,num_classifiers);
+    originalUncertainty = zeros(2, num_classifiers);
+    tempMatrix = zeros(2, num_classifiers);
     for feature = features
         %todo: generalize for multiple classifications
         i=1;
@@ -39,6 +44,7 @@ function [weights, costHistory] = informationGain(examples, features, threshold)
             greaterThan = find(examples(:, feature) > delta(i));
             
             %count number of class A and class B
+            
             for j = i : length(lessThan)
                 ni = find(count_array(1, :) == examples(lessThan(j),classification_index))   %column index of count array containing that classifier
                 count_array(2, ni) = count_array(2, ni) + 1
@@ -51,6 +57,27 @@ function [weights, costHistory] = informationGain(examples, features, threshold)
             %than & less than from our initial split
             %We can use these values to calculate information gain
             
+            %Counts for classifiers before split
+            for j = 1 : num_classifiers
+                occurenceMatrix(2, j) = count_array(2, j) + count_array(3, j)
+            end
+            
+            %calculate uncertainty before split
+            for j=1:num_classifiers
+                prob = occurenceMatrix(2, j)/sum(occurenceMatrix(2,:));
+                uncertainty = 0-prob * (log2(prob));
+                originalUncertainty(2,j) = uncertainty;
+            end
+            
+            for j=1:num_classifiers
+                numLessThan = sum(count_array(2,:));
+                numGreaterThan = sum(count_array(3,:));
+                pLess = count_array(2, j)/numLessThan;
+                pGreater = count_array(3, j)/numGreaterThan;
+                tempMatrix(2, j) = 0-pLess * log2(pLess);
+                tempMatrix(3, j) = 0-pGreater * log2(pGreater);
+            end
+                        
             if (gain > maxGain)
                 maxGainFeature = feature;
                 maxGain = gain;
@@ -65,6 +92,8 @@ function [weights, costHistory] = informationGain(examples, features, threshold)
     
     return 
 end
+
+
 
 % split data based on threshold calculated in informationGain
 % with each split calculate new split threshold with informationGain
