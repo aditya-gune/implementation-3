@@ -75,72 +75,78 @@ function [maxGain, maxFeature, maxDelta] = informationGain(examples, features)
     tempMatrix = zeros(2, num_classifiers);
     for feature = features
         %todo: generalize for multiple classifications
-        deltas = unique(examples(:, feature));
+        deltas = [examples(:, feature),examples(:, classification_index)];%unique(examples(:, feature));
+        deltas = sortrows(deltas, 1);
         for i=1:size(deltas,1)
-            %set temporary matrices 
-            count_array = zeros(3,num_classifiers);
-            count_array(1, :) = classifiers';
-            occurenceMatrix = zeros(2,num_classifiers);
-            
-            % returns indices - fix - make a split function
-            [lessThan, greaterThan] = split(examples, feature, deltas(i));
+            if i == 1
+                threshold = deltas(1,2);
+                
+            elseif deltas(i, 2) ~= deltas(i-1, 2)
+                threshold = deltas(i-1,2);
+                %set temporary matrices 
+                count_array = zeros(3,num_classifiers);
+                count_array(1, :) = classifiers';
+                occurenceMatrix = zeros(2,num_classifiers);
 
-            uncertaintyLesser = 0;
-            uncertaintyGreater = 0;
-            pLess=0;
-            pGreater=0;
-            
-            %count number of class A and class B
-            for j = 1 : size(lessThan,1)
-                ni = find(count_array(1, :) == lessThan(j, classification_index), classification_index);   %column index of count array containing that classifier
-                count_array(2, ni) = count_array(2, ni) + 1;
-            end
-            for j = 1 : size(greaterThan,1)
-                ni = find(count_array(1, :) == greaterThan(j, classification_index), classification_index);   %column index of count array containing that classifier
-                count_array(3, ni) = count_array(3, ni) + 1;
-            end
-            %after this code, we have matrix of class counts of greater
-            %than & less than from our initial split
-            %We can use these values to calculate information gain
-            
-            %Counts for classifiers before split
-            for j = 1 : num_classifiers
-                occurenceMatrix(2, j) = count_array(2, j) + count_array(3, j);
-            end
-            
-            %calculate uncertainty before split
-            if originalUncertainty == 0
-                for j=1:num_classifiers
-                    prob = occurenceMatrix(2, j)/sum(occurenceMatrix(2,:));
-                    uncertainty = prob * (log2(prob));
-                    originalUncertainty = originalUncertainty - uncertainty;
+                % returns indices - fix - make a split function
+                [lessThan, greaterThan] = split(examples, feature, threshold);
+                uncertaintyLesser = 0;
+                uncertaintyGreater = 0;
+                pLess=0;
+                pGreater=0;
+
+                %count number of class A and class B
+                for j = 1 : size(lessThan,1)
+                    ni = find(count_array(1, :) == lessThan(j, classification_index), classification_index);   %column index of count array containing that classifier
+                    count_array(2, ni) = count_array(2, ni) + 1;
                 end
-            end
-            
-            
-            %results in a matrix of uncertainties for 
-            %each split
-            for j=1:num_classifiers
-                numLessThan = sum(count_array(2,:));
-                numGreaterThan = sum(count_array(3,:));
-                tempLess = count_array(2, j)/numLessThan;
-                tempGreater = count_array(3, j)/numGreaterThan;
-                tempMatrix(2, j) = (0-tempLess) * log2(tempLess);
-                tempMatrix(3, j) = (0-tempGreater) * log2(tempGreater);
-            end
-            tempMatrix(isnan(tempMatrix)) = 0;
-            uncertaintyLesser = sum(tempMatrix(2, :));
-            uncertaintyGreater = sum(tempMatrix(3, :));
-            pLess = sum(count_array(2,:))/num_examples;
-            pGreater=sum(count_array(3,:))/num_examples;
-            
-            gain = originalUncertainty - (pLess*uncertaintyLesser + pGreater*uncertaintyGreater);
+                for j = 1 : size(greaterThan,1)
+                    ni = find(count_array(1, :) == greaterThan(j, classification_index), classification_index);   %column index of count array containing that classifier
+                    count_array(3, ni) = count_array(3, ni) + 1;
+                end
+                %after this code, we have matrix of class counts of greater
+                %than & less than from our initial split
+                %We can use these values to calculate information gain
 
-            
-            if (gain > maxGain)
-                maxFeature = feature;
-                maxGain = gain;
-                maxDelta = deltas(i);
+                %Counts for classifiers before split
+                for j = 1 : num_classifiers
+                    occurenceMatrix(2, j) = count_array(2, j) + count_array(3, j);
+                end
+
+                %calculate uncertainty before split
+                if originalUncertainty == 0
+                    for j=1:num_classifiers
+                        prob = occurenceMatrix(2, j)/sum(occurenceMatrix(2,:));
+                        uncertainty = prob * (log2(prob));
+                        originalUncertainty = originalUncertainty - uncertainty;
+                    end
+                end
+
+
+                %results in a matrix of uncertainties for 
+                %each split
+                for j=1:num_classifiers
+                    numLessThan = sum(count_array(2,:));
+                    numGreaterThan = sum(count_array(3,:));
+                    tempLess = count_array(2, j)/numLessThan;
+                    tempGreater = count_array(3, j)/numGreaterThan;
+                    tempMatrix(2, j) = (0-tempLess) * log2(tempLess);
+                    tempMatrix(3, j) = (0-tempGreater) * log2(tempGreater);
+                end
+                tempMatrix(isnan(tempMatrix)) = 0;
+                uncertaintyLesser = sum(tempMatrix(2, :));
+                uncertaintyGreater = sum(tempMatrix(3, :));
+                pLess = sum(count_array(2,:))/num_examples;
+                pGreater=sum(count_array(3,:))/num_examples;
+
+                gain = originalUncertainty - (pLess*uncertaintyLesser + pGreater*uncertaintyGreater);
+                disp(i);
+
+                if (gain > maxGain)
+                    maxFeature = feature;
+                    maxGain = gain
+                    maxDelta = deltas(i);
+                end
             end
         end
     end 
