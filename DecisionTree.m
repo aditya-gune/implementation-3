@@ -69,15 +69,19 @@ function [weights, costHistory] = informationGain(examples, features, threshold)
                 originalUncertainty(2,j) = uncertainty;
             end
             
+            %results in a matrix of uncertainties for 
+            %each split
             for j=1:num_classifiers
                 numLessThan = sum(count_array(2,:));
                 numGreaterThan = sum(count_array(3,:));
                 pLess = count_array(2, j)/numLessThan;
                 pGreater = count_array(3, j)/numGreaterThan;
-                tempMatrix(2, j) = 0-pLess * log2(pLess);
-                tempMatrix(3, j) = 0-pGreater * log2(pGreater);
+                tempMatrix(2, j) = (0-pLess) * log2(pLess);
+                tempMatrix(3, j) = (0-pGreater) * log2(pGreater);
             end
-                        
+            
+            
+            gain = 
             if (gain > maxGain)
                 maxGainFeature = feature;
                 maxGain = gain;
