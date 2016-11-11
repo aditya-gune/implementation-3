@@ -6,29 +6,62 @@ test_examples = load('D:\Aditya\Desktop\School\OSU\MS\Term 1\CS534 - Machine Lea
 num_examples = size(train_examples,1);
 num_features = size(train_examples,2)-1;   %last column is classification
 classification_index = num_features + 1;    %column containing classification
-%counting the number of classes in the dataset
-%classifiers = unique(train_examples(:, classification_index))
-%numClassifiers = length(classifiers);
 
-informationGain(train_examples, [1 2 3 4], 3);
+decisionTree(train_examples, [1 2 3 4], 3);
+baggedTree(train_examples, features, 3);
+% Bootstrap aggregation - 2c
+L_Values = [5, 10, 15, 20, 25, 30];
+for i=L_Values
+    for L=1:i
+        bootstrapExamples = train_examples(randsample(1:length(train_examples), length(train_examples), true), :);
+        baggedTree(bootstrapExamples, features, 3);
+    end
+end
 
 function [lessThan, greaterThan] = split(examples, feature, delta)
      lessThan = examples(find(examples(:, feature) <= delta), :);
      greaterThan = examples(find(examples(:, feature) > delta), :);
 end
+
+% Using the specified features, recursively and greedily construct a
+% decision tree for the provided examples. min_examples is termination
+% threshold.
+function decisionTree(examples, features, min_examples)
+    % if not enough examples or only one classification, return
+    if size(examples, 1) < min_examples | length(unique(examples(:, size(examples, 2)))) == 1
+        return;
+    end
+    
+    [maxGain, maxFeature, maxDelta] = informationGain(examples, features);
+    [lessThan, greaterThan] = split(examples, maxFeature, maxDelta);
+    decisionTree(lessThan, features, min_examples);
+    decisionTree(greaterThan, features, min_examples);
+end
+
+% Using the specified features, recursively and greedily construct a
+% decision tree for the provided examples using two random features at each step. 
+% min_examples is termination threshold.
+function baggedTree(examples, features, min_examples)
+    % if not enough examples or only one classification, return
+    if size(examples, 1) < min_examples | length(unique(examples(:, size(examples, 2)))) == 1
+        return;
+    end
+    
+    feature_perm = features(randperm(length(features), 2));
+    [maxGain, maxFeature, maxDelta] = informationGain(examples, feature_perm);
+    [lessThan, greaterThan] = split(examples, maxFeature, maxDelta);
+    decisionTree(lessThan, features, min_examples);
+    decisionTree(greaterThan, features, min_examples);
+end
  
 %indicies of features: [1,2...4] or other combination of features 
 % Examples comprise what is being considered at the current split
-function [weights, costHistory] = informationGain(examples, features, threshold)
-    if size(examples, 1) < threshold
-        return
-    end
-    
+function [maxGain, maxFeature, maxDelta] = informationGain(examples, features)
     classification_index = size(examples, 2);
     num_examples = size(examples, 1);
     
     maxGain = 0;
-    maxGainFeature = 0;
+    maxFeature = 0;
     maxDelta = 0;
     
     classifiers = unique(examples(:, classification_index));
@@ -101,20 +134,12 @@ function [weights, costHistory] = informationGain(examples, features, threshold)
 
             
             if (gain > maxGain)
-                maxGainFeature = feature;
-                maxGain = gain
+                maxFeature = feature;
+                maxGain = gain;
                 maxDelta = deltas(i);
-                disp(count_array);
             end
         end
-        
     end 
-    weights = 0;
-    costHistory = 0;
-    disp(maxGain);
-    disp(maxGainFeature);
-
-    return 
 end
 
 
