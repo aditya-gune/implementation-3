@@ -6,15 +6,15 @@ test_examples = load('D:\Aditya\Desktop\School\OSU\MS\Term 1\CS534 - Machine Lea
 num_examples = size(train_examples,1);
 num_features = size(train_examples,2)-1;   %last column is classification
 classification_index = num_features + 1;    %column containing classification
+features = [1 2 3 4];
 
-decisionTree(train_examples, [1 2 3 4], 3);
-baggedTree(train_examples, features, 3);
+returnedTree = decisionTree(train_examples, features, 3);
 % Bootstrap aggregation - 2c
 L_Values = [5, 10, 15, 20, 25, 30];
 for i=L_Values
     for L=1:i
         bootstrapExamples = train_examples(randsample(1:length(train_examples), length(train_examples), true), :);
-        baggedTree(bootstrapExamples, features, 3);
+        %baggedTree(bootstrapExamples, features, 3);
     end
 end
 
@@ -25,33 +25,37 @@ end
 
 % Using the specified features, recursively and greedily construct a
 % decision tree for the provided examples. min_examples is termination
-% threshold.
-function decisionTree(examples, features, min_examples)
+% threshold. {leftTree [feature and delta used] rightTree} is returned.
+function tree = decisionTree(examples, features, min_examples)
     % if not enough examples or only one classification, return
-    if size(examples, 1) < min_examples | length(unique(examples(:, size(examples, 2)))) == 1
+    if size(examples, 1) < min_examples || length(unique(examples(:, size(examples, 2)))) == 1
+        tree = [];
         return;
     end
-    
+
     [maxGain, maxFeature, maxDelta] = informationGain(examples, features);
     [lessThan, greaterThan] = split(examples, maxFeature, maxDelta);
-    decisionTree(lessThan, features, min_examples);
-    decisionTree(greaterThan, features, min_examples);
+    tree = {decisionTree(lessThan, features, min_examples), 
+            [maxFeature, maxDelta],
+            decisionTree(greaterThan, features, min_examples)};
 end
 
 % Using the specified features, recursively and greedily construct a
 % decision tree for the provided examples using two random features at each step. 
-% min_examples is termination threshold.
-function baggedTree(examples, features, min_examples)
+% min_examples is termination threshold. [leftTree [feature and delta used] rightTree] is returned.
+function tree = baggedTree(examples, features, min_examples)
     % if not enough examples or only one classification, return
-    if size(examples, 1) < min_examples | length(unique(examples(:, size(examples, 2)))) == 1
+    if size(examples, 1) < min_examples || length(unique(examples(:, size(examples, 2)))) == 1
+        tree = [];
         return;
     end
     
     feature_perm = features(randperm(length(features), 2));
     [maxGain, maxFeature, maxDelta] = informationGain(examples, feature_perm);
     [lessThan, greaterThan] = split(examples, maxFeature, maxDelta);
-    decisionTree(lessThan, features, min_examples);
-    decisionTree(greaterThan, features, min_examples);
+    tree = {baggedTree(lessThan, features, min_examples), 
+            [maxFeature, maxDelta],
+            baggedTree(greaterThan, features, min_examples)};
 end
  
 %indicies of features: [1,2...4] or other combination of features 
