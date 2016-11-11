@@ -8,7 +8,9 @@ num_features = size(train_examples,2)-1;   %last column is classification
 classification_index = num_features + 1;    %column containing classification
 features = [1 2 3 4];
 
-returnedTree = decisionTree(train_examples, features, 3);
+
+
+[returnedTree, featureTable] = decisionTree(train_examples, features, 3);
 % Bootstrap aggregation - 2c
 L_Values = [5, 10, 15, 20, 25, 30];
 for i=L_Values
@@ -26,13 +28,15 @@ end
 % Using the specified features, recursively and greedily construct a
 % decision tree for the provided examples. min_examples is termination
 % threshold. {leftTree [feature and delta used] rightTree} is returned.
-function tree = decisionTree(examples, features, min_examples)
+function [tree, featureTable] = decisionTree(examples, features, min_examples)
     % if not enough examples or only one classification, return
     if size(examples, 1) < min_examples || length(unique(examples(:, size(examples, 2)))) == 1
         tree = [];
         return;
     end
-
+    
+    
+    
     [maxGain, maxFeature, maxDelta] = informationGain(examples, features);
     [lessThan, greaterThan] = split(examples, maxFeature, maxDelta);
     tree = {decisionTree(lessThan, features, min_examples), 
@@ -60,7 +64,9 @@ end
  
 %indicies of features: [1,2...4] or other combination of features 
 % Examples comprise what is being considered at the current split
-function [maxGain, maxFeature, maxDelta] = informationGain(examples, features)
+function [maxGain, maxFeature, maxDelta, featureTable] = informationGain(examples, features)
+    featureTable = zeros(size(examples, 1), size(examples,1));
+    featureTable(1,1) = 18;
     classification_index = size(examples, 2);
     num_examples = size(examples, 1);
     
@@ -79,10 +85,10 @@ function [maxGain, maxFeature, maxDelta] = informationGain(examples, features)
         deltas = sortrows(deltas, 1);
         for i=1:size(deltas,1)
             if i == 1
-                threshold = deltas(1,2);
+                threshold = deltas(1,1);
                 
             elseif deltas(i, 2) ~= deltas(i-1, 2)
-                threshold = deltas(i-1,2);
+                threshold = deltas(i-1,1);
                 %set temporary matrices 
                 count_array = zeros(3,num_classifiers);
                 count_array(1, :) = classifiers';
@@ -140,15 +146,18 @@ function [maxGain, maxFeature, maxDelta] = informationGain(examples, features)
                 pGreater=sum(count_array(3,:))/num_examples;
 
                 gain = originalUncertainty - (pLess*uncertaintyLesser + pGreater*uncertaintyGreater);
-                disp(i);
+                %features
 
                 if (gain > maxGain)
                     maxFeature = feature;
-                    maxGain = gain
+                    maxGain = gain;
                     maxDelta = deltas(i);
                 end
             end
         end
+    %disp(feature);
+    %disp(maxGain);
+    
     end 
 end
 
